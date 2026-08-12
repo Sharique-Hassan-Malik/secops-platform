@@ -183,24 +183,27 @@ Results: 6 passed, 0 failed out of 6 cases
 
 ## Continuous Integration
 
-The `CI` workflow builds the C, C++, C#, and Rust targets and runs the Python
-test corpus across Python 3.10 / 3.11 / 3.12.
+This project lives inside the [`security`](https://github.com/Sharique-Hassan-Malik/security)
+repository, so its workflow sits at that repository's root as
+`.github/workflows/zipbomb-detector-ci.yml` and runs with `Zipbomb-Detector` as
+its working directory. It builds the C, C++, C#, and Rust targets and runs the
+Python test corpus on 3.10 / 3.11 / 3.12.
 
-**It does not run automatically.** Pushing to `main` or `dev` will not start it.
-Every job is gated behind a repository Variable, so CI stays off until you
+**It does not run automatically.** Pushing to `main` or `dev` will not start it —
+every job is gated behind a repository Variable, so CI stays off until you
 deliberately switch it on:
 
 | To do this | Do that |
 |---|---|
-| **Run CI once, now** | *Actions → CI → Run workflow*. Always available, no setup needed. |
+| **Run CI once, now** | *Actions → Zipbomb-Detector CI → Run workflow*. Always available, no setup needed. |
 | **Enable CI on every push** | *Settings → Secrets and variables → Actions → Variables* → add `CI_ENABLED` = `true`. |
 | **Turn it back off** | Delete `CI_ENABLED`, or set it to anything other than `true`. |
 
-The switch is exact-match: only the literal string `true` enables it, so a
-typo leaves CI off rather than silently on.
+The switch is exact-match: only the literal string `true` enables it, so a typo
+leaves CI off rather than silently on.
 
-Lint settings live in [`.flake8`](.flake8) at the repo root, so `flake8 python/`
-locally checks exactly what CI checks.
+Lint settings live in [`.flake8`](.flake8) in this directory, so `flake8 python/`
+run from here checks exactly what CI checks.
 
 ---
 

@@ -1,4 +1,4 @@
-name: CI
+name: Zipbomb-Detector CI
 
 on:
   push:
@@ -8,7 +8,11 @@ on:
 # Nothing here runs automatically. A push only starts CI once the repository
 # Variable CI_ENABLED is set to exactly 'true'
 # (Settings -> Secrets and variables -> Actions -> Variables).
-# A manual run (Actions -> CI -> Run workflow) always works regardless.
+# A manual run (Actions -> Zipbomb-Detector CI -> Run workflow) always works.
+
+defaults:
+  run:
+    working-directory: Zipbomb-Detector
 
 jobs:
   build-c:
