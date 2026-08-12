@@ -1,0 +1,11 @@
+# No third-party dependencies required for core scanner.
+# Optional extras for extended reporting:
+
+# For rich terminal output (optional)
+# rich>=13.0
+
+# For pandas-based batch analysis (optional)
+# pandas>=2.0
+
+# For unit test running
+pytest>=7.0

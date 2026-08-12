@@ -1,0 +1,15 @@
+[flake8]
+max-line-length = 120
+
+# This codebase aligns assignments, dataclass fields and struct-parsing tables
+# into columns on purpose — it makes the binary-format scanners readable next to
+# the specs they implement. The codes below are that house style, not defects.
+#   E221/E241/E272  aligned operators, commas and keywords
+#   E126/E127/E128  continuation lines aligned to the opening delimiter
+#   E701/E702       compact single-line guard clauses (`if x > n: return None`)
+#   E226/E227/E231  tight spacing in arithmetic, bitwise and index expressions
+#   E203            whitespace before ':' in slices
+#   W503            line break before a binary operator
+extend-ignore = E501,W503,E221,E241,E272,E126,E127,E128,E701,E702,E226,E227,E231,E203
+
+exclude = .git,__pycache__,test_zips,build,dist

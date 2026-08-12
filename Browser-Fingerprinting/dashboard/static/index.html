@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fingerprinting Research Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script>
+  <style>
+    :root { --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#e3b341; }
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; }
+    .app { max-width:1280px; margin:0 auto; padding:24px; }
+    header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:16px; }
+    header h1 { font-size:18px; font-weight:700; }
+    header h1 span { color:var(--accent); }
+    .tabs { display:flex; gap:8px; margin-bottom:20px; }
+    .tab { padding:6px 14px; border-radius:6px; border:1px solid var(--border); background:var(--bg2); color:var(--muted); cursor:pointer; font-size:12px; }
+    .tab.active { background:var(--bg3); color:var(--text); border-color:var(--accent); }
+    .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .panel { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:16px; }
+    .panel-title { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px; }
+    .stat-val { font-size:30px; font-weight:700; color:var(--accent); }
+    .stat-sub { font-size:11px; color:var(--muted); margin-top:3px; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    thead th { text-align:left; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; padding:6px 8px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--bg2); }
+    tbody td { padding:5px 8px; border-bottom:1px solid rgba(48,54,61,0.5); }
+    tbody tr:hover td { background:var(--bg3); }
+    .tbl-wrap { max-height:420px; overflow-y:auto; }
+    .no-data { color:var(--muted); text-align:center; padding:40px; font-size:12px; }
+    .entropy-bar-wrap { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+    .entropy-label { width:200px; font-size:11px; color:var(--muted); text-align:right; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .entropy-track { flex:1; height:12px; background:var(--bg3); border-radius:3px; position:relative; }
+    .entropy-fill { height:100%; border-radius:3px; }
+    .entropy-val { width:40px; font-family:monospace; font-size:11px; text-align:right; flex-shrink:0; }
+    .group-chip { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:700; margin-right:4px; }
+    .group-canvas  { background:rgba(88,166,255,.15);  color:var(--accent); }
+    .group-webgl   { background:rgba(63,185,80,.15);   color:var(--green); }
+    .group-audio   { background:rgba(227,179,65,.15);  color:var(--yellow); }
+    .group-fonts   { background:rgba(248,81,73,.15);   color:var(--red); }
+    .group-timing  { background:rgba(139,148,158,.15); color:var(--muted); }
+    .group-network { background:rgba(88,166,255,.15);  color:var(--accent); }
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+    .collect-link { display:inline-block; padding:8px 18px; background:var(--accent); color:#0d1117; border-radius:6px; font-weight:700; text-decoration:none; font-size:12px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const { useState, useEffect } = React;
+const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } = Recharts;
+
+const GROUP_COLORS = {
+  canvas: "#58a6ff", webgl: "#3fb950", audio: "#e3b341",
+  fonts: "#f85149", timing: "#8b949e", network: "#d29922",
+};
+
+function GroupChip({ group }) {
+  return React.createElement("span", { className: `group-chip group-${group}` }, group);
+}
+
+function StatCard({ label, value, sub }) {
+  return React.createElement("div", { className: "panel" },
+    React.createElement("div", { className: "panel-title" }, label),
+    React.createElement("div", { className: "stat-val" }, value ?? "—"),
+    sub && React.createElement("div", { className: "stat-sub" }, sub)
+  );
+}
+
+function EntropyBars({ features }) {
+  if (!features || features.length === 0) return React.createElement("div", { className: "no-data" }, "No data");
+  const maxBits = Math.max(...features.map(f => f.entropy_bits), 1);
+  const top = features.slice(0, 30);
+  return React.createElement("div", null,
+    top.map(f =>
+      React.createElement("div", { key: f.feature, className: "entropy-bar-wrap" },
+        React.createElement("div", { className: "entropy-label", title: f.feature }, f.feature),
+        React.createElement("div", { className: "entropy-track" },
+          React.createElement("div", {
+            className: "entropy-fill",
+            style: { width: `${(f.entropy_bits / maxBits) * 100}%`, background: GROUP_COLORS[f.group] || "#58a6ff" }
+          })
+        ),
+        React.createElement("div", { className: "entropy-val", style: { color: GROUP_COLORS[f.group] } },
+          f.entropy_bits.toFixed(2)
+        )
+      )
+    )
+  );
+}
+
+function GroupChart({ groupTotals }) {
+  if (!groupTotals) return null;
+  const data = Object.entries(groupTotals).map(([k, v]) => ({ name: k, bits: v }));
+  return React.createElement(ResponsiveContainer, { width: "100%", height: 220 },
+    React.createElement(BarChart, { data, margin: { top: 4, right: 8, bottom: 0, left: -10 } },
+      React.createElement(CartesianGrid, { strokeDasharray: "3 3", stroke: "#30363d" }),
+      React.createElement(XAxis, { dataKey: "name", tick: { fill: "#8b949e", fontSize: 11 } }),
+      React.createElement(YAxis, { tick: { fill: "#8b949e", fontSize: 10 }, unit: " bits" }),
+      React.createElement(Tooltip, {
+        contentStyle: { background: "#161b22", border: "1px solid #30363d", borderRadius: 6 },
+        formatter: v => [`${v.toFixed(3)} bits`],
+      }),
+      React.createElement(Bar, { dataKey: "bits", radius: [4,4,0,0] },
+        data.map((d, i) => React.createElement(Cell, { key: i, fill: GROUP_COLORS[d.name] || "#58a6ff" }))
+      )
+    )
+  );
+}
+
+function FingerprintTable({ fingerprints }) {
+  if (!fingerprints || fingerprints.length === 0) return React.createElement("div", { className: "no-data" }, "No fingerprints yet. Visit /collect to submit one.");
+  return React.createElement("div", { className: "tbl-wrap" },
+    React.createElement("table", null,
+      React.createElement("thead", null,
+        React.createElement("tr", null,
+          ["ID","Collected","Canvas","WebGL Renderer","Audio","Fonts","TZ","Screen","Platform","Composite"].map(h =>
+            React.createElement("th", { key: h }, h)
+          )
+        )
+      ),
+      React.createElement("tbody", null,
+        fingerprints.map(fp =>
+          React.createElement("tr", { key: fp.id },
+            React.createElement("td", null, fp.id),
+            React.createElement("td", null, fp.collected_at ? new Date(fp.collected_at).toLocaleString() : "—"),
+            React.createElement("td", { style: { fontFamily: "monospace", color: "#58a6ff" } }, fp.canvas_hash || "—"),
+            React.createElement("td", { style: { maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, title: fp.webgl_unmasked_renderer }, fp.webgl_unmasked_renderer || fp.webgl_renderer || "—"),
+            React.createElement("td", { style: { fontFamily: "monospace", color: "#e3b341" } }, fp.audio_hash || "—"),
+            React.createElement("td", null, fp.font_count ?? "—"),
+            React.createElement("td", null, fp.timezone || "—"),
+            React.createElement("td", null, fp.screen_width && fp.screen_height ? `${fp.screen_width}×${fp.screen_height}` : "—"),
+            React.createElement("td", null, fp.platform || "—"),
+            React.createElement("td", { style: { fontFamily: "monospace", fontSize: 11 } }, fp.composite_hash || "—"),
+          )
+        )
+      )
+    )
+  );
+}
+
+function ClassifierView({ data }) {
+  if (!data) return React.createElement("div", { className: "no-data" }, "Run classifier via GET /api/classifier");
+  if (data.error) return React.createElement("div", { className: "no-data" }, data.error);
+  const fi = (data.feature_importances || []).slice(0, 15);
+  const maxImp = fi.length ? fi[0].importance : 1;
+  return React.createElement("div", { className: "grid-2" },
+    React.createElement("div", { className: "panel" },
+      React.createElement("div", { className: "panel-title" }, "Feature Importances (top 15)"),
+      fi.map(f =>
+        React.createElement("div", { key: f.feature, className: "entropy-bar-wrap" },
+          React.createElement("div", { className: "entropy-label" }, f.feature),
+          React.createElement("div", { className: "entropy-track" },
+            React.createElement("div", {
+              className: "entropy-fill",
+              style: { width: `${(f.importance / maxImp) * 100}%`, background: "#3fb950" }
+            })
+          ),
+          React.createElement("div", { className: "entropy-val", style: { color: "#3fb950" } },
+            f.importance.toFixed(4)
+          )
+        )
+      )
+    ),
+    React.createElement("div", { className: "panel" },
+      React.createElement("div", { className: "panel-title" }, "Per-Class Accuracy"),
+      React.createElement("div", { style: { fontSize: 12 } },
+        Object.entries(data.classification_report || {})
+          .filter(([k]) => k !== "accuracy" && k !== "macro avg" && k !== "weighted avg")
+          .map(([cls, metrics]) =>
+            React.createElement("div", { key: cls, style: { marginBottom: 8, padding: "8px 10px", background: "#21262d", borderRadius: 4 } },
+              React.createElement("div", { style: { fontWeight: 600, marginBottom: 4 } }, cls),
+              React.createElement("div", { style: { color: "#8b949e" } },
+                `P: ${(metrics.precision || 0).toFixed(3)}  R: ${(metrics.recall || 0).toFixed(3)}  F1: ${(metrics["f1-score"] || 0).toFixed(3)}  n: ${metrics.support || 0}`
+              )
+            )
+          )
+      )
+    )
+  );
+}
+
+function App() {
+  const [tab,      setTab]      = useState("entropy");
+  const [stats,    setStats]    = useState(null);
+  const [entropy,  setEntropy]  = useState(null);
+  const [clf,      setClf]      = useState(null);
+  const [fps,      setFps]      = useState([]);
+
+  useEffect(() => {
+    fetch("/api/stats").then(r => r.json()).then(setStats).catch(() => {});
+    fetch("/api/fingerprints?limit=200").then(r => r.json()).then(d => setFps(d.fingerprints || [])).catch(() => {});
+    fetch("/api/entropy").then(r => r.json()).then(setEntropy).catch(() => {});
+    fetch("/api/classifier").then(r => r.json()).then(setClf).catch(() => {});
+  }, []);
+
+  const refresh = () => {
+    fetch("/api/stats").then(r => r.json()).then(setStats).catch(() => {});
+    fetch("/api/fingerprints?limit=200").then(r => r.json()).then(d => setFps(d.fingerprints || [])).catch(() => {});
+    fetch("/api/entropy").then(r => r.json()).then(setEntropy).catch(() => {});
+    fetch("/api/classifier").then(r => r.json()).then(setClf).catch(() => {});
+  };
+
+  return React.createElement("div", { className: "app" },
+    React.createElement("header", null,
+      React.createElement("h1", null, React.createElement("span", null, "⊕ "), "Browser Fingerprinting Research Tool"),
+      React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center" } },
+        React.createElement("a", { href: "/collect", className: "collect-link" }, "Collect Fingerprint"),
+        React.createElement("button", { onClick: refresh, style: { padding: "6px 14px", borderRadius: 6, border: "1px solid #30363d", background: "#161b22", color: "#e6edf3", cursor: "pointer", fontSize: 12 } }, "Refresh")
+      )
+    ),
+
+    React.createElement("div", { className: "grid-4" },
+      React.createElement(StatCard, { label: "Total Fingerprints", value: stats?.total_fingerprints }),
+      React.createElement(StatCard, { label: "Unique Canvas", value: stats?.unique_canvas, sub: "distinct rendering hashes" }),
+      React.createElement(StatCard, { label: "Unique WebGL", value: stats?.unique_webgl, sub: "distinct GPU renderers" }),
+      React.createElement(StatCard, { label: "Uniqueness Rate", value: stats?.uniqueness_rate != null ? `${(stats.uniqueness_rate * 100).toFixed(1)}%` : "—", sub: "composite hash" }),
+    ),
+
+    React.createElement("div", { className: "tabs" },
+      ["entropy", "breakdown", "classifier", "fingerprints"].map(t =>
+        React.createElement("button", { key: t, className: `tab ${tab === t ? "active" : ""}`, onClick: () => setTab(t) },
+          { entropy: "Entropy Analysis", breakdown: "Group Breakdown", classifier: "Classifier", fingerprints: "Fingerprints" }[t]
+        )
+      )
+    ),
+
+    tab === "entropy" && React.createElement("div", { className: "panel" },
+      React.createElement("div", { className: "panel-title" },
+        entropy ? `Feature Entropy — ${entropy.total_bits?.toFixed(2)} total bits across ${entropy.n_fingerprints} samples` : "Feature Entropy"
+      ),
+      entropy?.features ? React.createElement(EntropyBars, { features: entropy.features }) : React.createElement("div", { className: "no-data" }, "No data yet")
+    ),
+
+    tab === "breakdown" && React.createElement("div", { className: "grid-2" },
+      React.createElement("div", { className: "panel" },
+        React.createElement("div", { className: "panel-title" }, "Entropy Bits by Source Group"),
+        React.createElement(GroupChart, { groupTotals: entropy?.group_totals })
+      ),
+      React.createElement("div", { className: "panel" },
+        React.createElement("div", { className: "panel-title" }, "Group Totals"),
+        entropy?.group_totals
+          ? React.createElement("table", null,
+              React.createElement("thead", null, React.createElement("tr", null,
+                React.createElement("th", null, "Group"), React.createElement("th", null, "Bits")
+              )),
+              React.createElement("tbody", null,
+                Object.entries(entropy.group_totals).map(([g, v]) =>
+                  React.createElement("tr", { key: g },
+                    React.createElement("td", null, React.createElement(GroupChip, { group: g })),
+                    React.createElement("td", { style: { fontFamily: "monospace", color: GROUP_COLORS[g] } }, v.toFixed(3))
+                  )
+                )
+              )
+            )
+          : React.createElement("div", { className: "no-data" }, "No data")
+      )
+    ),
+
+    tab === "classifier" && React.createElement(ClassifierView, { data: clf }),
+
+    tab === "fingerprints" && React.createElement("div", { className: "panel" },
+      React.createElement("div", { className: "panel-title" }, `Collected Fingerprints (${fps.length})`),
+      React.createElement(FingerprintTable, { fingerprints: fps })
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>

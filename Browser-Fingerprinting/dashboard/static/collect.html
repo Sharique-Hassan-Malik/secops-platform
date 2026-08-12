@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fingerprint Collector</title>
+  <style>
+    :root { --bg:#0d1117; --bg2:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950; --red:#f85149; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 16px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 32px; max-width: 620px; width: 100%; }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    h1 span { color: var(--accent); }
+    .subtitle { color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+    .btn { display: block; width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--accent); color: #0d1117; font-weight: 700; font-size: 14px; cursor: pointer; margin-bottom: 20px; }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .status { padding: 12px 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); font-family: monospace; font-size: 12px; min-height: 44px; margin-bottom: 20px; }
+    .status.ok   { border-color: var(--green); color: var(--green); }
+    .status.err  { border-color: var(--red);   color: var(--red); }
+    .signals { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .signal { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+    .sig-name { font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 4px; }
+    .sig-val { font-family: monospace; font-size: 12px; word-break: break-all; }
+    .sig-val.ok  { color: var(--green); }
+    .sig-val.err { color: var(--red); }
+    .link { margin-top: 20px; text-align: center; color: var(--muted); font-size: 12px; }
+    .link a { color: var(--accent); text-decoration: none; }
+    .spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 6px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1><span>⊕</span> Browser Fingerprint Collector</h1>
+  <p class="subtitle">
+    This page collects browser fingerprint signals — canvas rendering, WebGL GPU info,
+    AudioContext hashes, installed fonts, timing measurements and network properties —
+    and submits them to the local research server. No data leaves your machine.
+  </p>
+  <button class="btn" id="collectBtn" onclick="runCollect()">Collect Fingerprint</button>
+  <div class="status" id="status">Ready — click to collect.</div>
+  <div class="signals" id="signals"></div>
+  <div class="link">
+    View analysis → <a href="/">Dashboard</a>
+  </div>
+</div>
+
+<script type="module">
+import { collect } from "/static/collector/fingerprint.js"
+
+async function runCollect() {
+  const btn    = document.getElementById("collectBtn")
+  const status = document.getElementById("status")
+  const sigs   = document.getElementById("signals")
+
+  btn.disabled    = true
+  status.className = "status"
+  status.innerHTML = '<span class="spinner"></span>Collecting signals…'
+  sigs.innerHTML   = ""
+
+  try {
+    const fp = await collect()
+
+    // Show signal cards
+    const display = [
+      ["Canvas Hash",    fp.canvas?.hash || fp.canvas?.error || "—",           !!fp.canvas?.hash],
+      ["WebGL Renderer", fp.webgl?.unmaskedRenderer || fp.webgl?.renderer || fp.webgl?.error || "—", !!fp.webgl?.renderer],
+      ["Audio Hash",     fp.audio?.hash || fp.audio?.error || "—",             !!fp.audio?.hash],
+      ["Fonts Detected", `${(fp.fonts?.detected || []).length} fonts`,         true],
+      ["Timezone",       fp.timing?.timezone || "—",                           true],
+      ["Screen",         `${fp.timing?.screenWidth}×${fp.timing?.screenHeight}`, true],
+      ["GPU (unmasked)", fp.webgl?.unmaskedRenderer || "blocked",              !!fp.webgl?.unmaskedRenderer],
+      ["Clock Res (ms)", fp.timing?.clockResolution?.toFixed(3) || "—",       true],
+    ]
+
+    sigs.innerHTML = display.map(([name, val, ok]) => `
+      <div class="signal">
+        <div class="sig-name">${name}</div>
+        <div class="sig-val ${ok ? 'ok' : 'err'}">${String(val).slice(0, 60)}</div>
+      </div>
+    `).join("")
+
+    // Submit to server
+    const resp = await fetch("/api/collect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fp),
+    })
+    const data = await resp.json()
+    status.className = "status ok"
+    status.textContent = `✓ Submitted — fingerprint ID: ${data.fingerprint_id}  composite: ${data.composite_hash}`
+  } catch (e) {
+    status.className = "status err"
+    status.textContent = `Error: ${e}`
+  } finally {
+    btn.disabled = false
+  }
+}
+
+window.runCollect = runCollect
+</script>
+</body>
+</html>

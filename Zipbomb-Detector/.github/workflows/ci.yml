@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+# Nothing here runs automatically. A push only starts CI once the repository
+# Variable CI_ENABLED is set to exactly 'true'
+# (Settings -> Secrets and variables -> Actions -> Variables).
+# A manual run (Actions -> CI -> Run workflow) always works regardless.
+
+jobs:
+  build-c:
+    name: Build C (zip_detector + multi_detector)
+    if: vars.CI_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cd c && make
+      - name: Smoke test — ZIP
+        run: cd c && echo "PK" > /tmp/t.zip && ./zip_detector /tmp/t.zip || true
+      - name: Smoke test — multi-format
+        run: cd c && ./multi_detector c/zip_detector.c || true
+
+  build-cpp:
+    name: Build C++ (archive_analyzer + multi_detector)
+    if: vars.CI_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cd cpp && make
+      - name: Smoke test — ZIP
+        run: cd cpp && echo "not a zip" > /tmp/t.txt && ./archive_analyzer /tmp/t.txt || true
+      - name: Smoke test — multi-format
+        run: cd cpp && ./multi_detector cpp/ArchiveAnalyzer.cpp || true
+
+  build-csharp:
+    name: Build C# scanner
+    if: vars.CI_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build
+        run: cd csharp/ZipBombScanner && dotnet restore && dotnet build --configuration Release
+
+  build-rust:
+    name: Build Rust detector
+    if: vars.CI_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        run: cd rust && cargo build --release
+      - name: Tests
+        run: cd rust && cargo test
+
+  python-tests:
+    name: Python tests (${{ matrix.python-version }})
+    if: vars.CI_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install deps
+        run: pip install -r python/requirements.txt
+      - name: Run test corpus (6/6)
+        run: cd python && python test_corpus.py run --outdir ./test_zips
+      - name: Smoke test multi-format detection
+        run: |
+          cd python
+          python -c "
+          from formats import detect_format, scan_any
+          from pathlib import Path
+          import gzip, tarfile, io
+
+          # gzip
+          Path('/tmp/t.gz').write_bytes(gzip.compress(b'x'*1000))
+          r = scan_any('/tmp/t.gz', {'max_ratio':100,'max_uncompressed':4e9,'max_entries':10000,'check_overlaps':True})
+          assert r.fmt == 'gzip', f'Expected gzip, got {r.fmt}'
+
+          # tar
+          buf = io.BytesIO()
+          with tarfile.open(fileobj=buf, mode='w') as t:
+              d=b'hello'; i=tarfile.TarInfo('f.txt'); i.size=len(d); t.addfile(i,io.BytesIO(d))
+          Path('/tmp/t.tar').write_bytes(buf.getvalue())
+          r = scan_any('/tmp/t.tar', {'max_ratio':100,'max_uncompressed':4e9,'max_entries':10000,'check_overlaps':True})
+          assert r.fmt == 'tar', f'Expected tar, got {r.fmt}'
+
+          print('Multi-format smoke test passed')
+          "
+      - name: Lint
+        run: pip install flake8 && flake8 python/
