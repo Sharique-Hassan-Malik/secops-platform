@@ -1,0 +1,10 @@
+# The platform, the zipbomb detector and the bytecode analyser need nothing
+# beyond the standard library. Everything below belongs to a specific sensor.
+numpy>=1.24          # stego, fingerprinting, WAF, side-channel, acoustic
+pillow>=9            # steganography-detector
+scipy>=1.10          # steganography-detector, acoustic-keylogger
+scikit-learn>=1.3    # WAF classifier, fingerprint classifier, acoustic model
+fastapi>=0.100       # siem
+sqlalchemy>=2.0      # siem
+uvicorn>=0.23        # siem
+pytest>=7

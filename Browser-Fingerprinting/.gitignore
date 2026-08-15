@@ -1,9 +1,0 @@
-__pycache__/
-*.pyc
-.pytest_cache/
-fingerprints.db
-*.pkl
-.env
-.DS_Store
-*.egg-info/
-dashboard/static/collector/
