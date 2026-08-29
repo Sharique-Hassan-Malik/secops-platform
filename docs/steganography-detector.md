@@ -122,19 +122,3 @@ detect(path)
                                     ↓
                     {file, file_type, methods, detections, score, verdict}
 ```
-
-## Limitations
-
-- All methods are statistical. They operate best at moderate to high embedding
-  rates (> 20%). At very low rates (< 5%) false-negative rates increase
-  substantially, which is an inherent property of the underlying statistics,
-  not a bug.
-- JPEG re-compression destroys spatial LSB embeddings. The DCT-domain analysis
-  is needed for JPEG files because the spatial methods are not meaningful after
-  quantization.
-- The calibrated DCT test crops the image to build a reference, which
-  requires the image to be at least 8 pixels in each dimension after cropping.
-- Palette analysis has low statistical power for small palettes (< 16 colors)
-  because the chi-square test lacks sufficient degrees of freedom.
-- MP3 and lossy audio formats destroy LSB content. Only lossless formats (WAV,
-  FLAC) are analyzed for audio.

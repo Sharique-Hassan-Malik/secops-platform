@@ -100,27 +100,6 @@ declared-size attack.
 | Quine / self-referencing | Partial | Depth limit mitigates |
 | Header metadata spoofing | ✓ | Declared-size ratio check |
 
----
-
-## Limitations
-
-1. **Does not detect encrypted bombs.** Encrypted ZIP entries have
-   size fields that may be unavailable or unreliable before decryption.
-
-2. **Does not detect all quines.** A cycle across different files
-   (A contains B, B contains A) requires full graph traversal — not
-   implemented in this version.
-
-3. **Relies on declared metadata.** A file with honest headers
-   but malicious intent might have correct metadata and only reveal
-   itself upon decompression. This scanner cannot detect that case
-   without actually decompressing.
-
-4. **Gzip/bzip2/7z/tar.** The current implementation focuses on ZIP.
-   Other formats require their own parsers.
-
----
-
 ## Responsible Use
 
 This project is a **defensive tool**. It is designed to:
