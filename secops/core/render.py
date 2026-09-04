@@ -1,10 +1,9 @@
 """One output format for ten sensors.
 
-Each of these tools arrived with its own reporter — coloured tables, an HTML
-page, a JSON dump, a bare print. Consolidating them was not cosmetic: an
-analyst comparing a stego finding against a bytecode finding was reading two
-different severity vocabularies in two different layouts, and correlation was
-invisible because nothing rendered it.
+Per-sensor reporters — coloured tables, an HTML page, a JSON dump, a bare print
+— are not merely untidy: an analyst comparing a stego finding against a bytecode
+finding then reads two severity vocabularies in two layouts, and a correlation
+between them is invisible because nothing renders it.
 
 Severity never travels as colour alone. Every level carries a distinct glyph
 and its written name, which is what keeps the output readable for a

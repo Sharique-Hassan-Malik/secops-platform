@@ -27,8 +27,8 @@ what kind of thing it was, and — critically — **the entity it was about**.
 `entity` is the join key. A file path, a source IP, a CAN arbitration ID. It is
 the only reason correlation is possible: two sensors examining different
 properties of the same thing can only be compared if they both name the thing
-the same way. Before the merge, one tool called it `path`, another `source_ip`,
-a third printed it in a table header.
+the same way. Left to themselves, one tool calls it `path`, another `source_ip`,
+and a third prints it in a table header and nowhere else.
 
 `fields` carries whatever else that sensor knows. Nothing downstream needs to
 understand it, and forcing every sensor into a fixed column set would have
@@ -76,12 +76,12 @@ Loading is by file path: each module folder is its own source root, put on
 same import path the sensor gets when run standalone from its own directory, so
 "works alone" and "works in the platform" cannot drift apart.
 
-## The collision the merge exposed
+## The top-level `config.py` collision
 
-Three of these modules shipped a top-level `config.py`. In separate
-repositories that is fine. In one process, whichever imported first won
-`sys.modules["config"]` and the others silently received the wrong settings —
-the SIEM tried to read `DB_URL` out of the bytecode analyser's configuration.
+Three of these modules carry a top-level `config.py`. Run alone that is fine.
+In one process, whichever imports first wins `sys.modules["config"]` and the
+others silently receive the wrong settings — the SIEM reading `DB_URL` out of
+the bytecode analyser's configuration.
 
 Each now has a name of its own (`siem_config`, `fuzzer_config`,
 `bytecode_config`), and a test walks `modules/` asserting no two top-level

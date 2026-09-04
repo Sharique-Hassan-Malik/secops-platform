@@ -84,7 +84,7 @@ so no aggregate verdict was possible. Now there is one ordered `Severity` and
 once. `--ingest` writes the same events to the SIEM's `detections` table, where
 they are queryable and sit alongside the log stream already flowing in.
 
-**One report.** Ten reporters became one renderer: terminal, JSON and a
+**One report.** One renderer for all ten sensors: terminal, JSON and a
 self-contained HTML page. Severity never travels as colour alone — every level
 carries a distinct glyph and its written name, so the output survives a
 colour-blind analyst, a printed incident report, and a CI log with the ANSI
@@ -129,3 +129,21 @@ pytest modules/can-ids            # one module
 ## Licence
 
 MIT — see [LICENSE](LICENSE).
+
+## Scope and responsible use
+
+This repository contains defensive tooling and red-team **simulators**. The
+simulators — side-channel analysis, protocol fuzzing, CAN bus injection —
+exist to measure whether your own monitoring detects an attack.
+
+- **Run them only against systems you own or are explicitly authorised to
+  test.** The attack modules target simulated or locally supplied devices by
+  default and are not built to reach third-party systems.
+- `browser-fingerprinting` demonstrates how identifying a browser works, so
+  that it can be measured and defended against. It is self-hosted and writes to
+  a local database you control; if you serve its collection page to other
+  people, telling them what it records is on you.
+- No exploit is included for any third-party product, and nothing here is
+  intended to defeat an access control on a system you do not control.
+- Provided **as is**, under the [LICENSE](LICENSE). You are responsible for
+  having authorisation before running any of it.
