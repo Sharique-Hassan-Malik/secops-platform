@@ -3,7 +3,6 @@
 > Part of the [Security Operations Platform](../../README.md). Runs standalone
 > from this folder, and reports into the shared event pipeline via `secops`.
 
-[![CI](https://github.com/Sharique-Hassan-Malik/Zipbomb-Detector/actions/workflows/ci.yml/badge.svg)](https://github.com/Sharique-Hassan-Malik/Zipbomb-Detector/actions)
 ![Languages](https://img.shields.io/badge/languages-C%20%7C%20C%2B%2B%20%7C%20C%23%20%7C%20Python%20%7C%20Rust%20%7C%20MATLAB-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
