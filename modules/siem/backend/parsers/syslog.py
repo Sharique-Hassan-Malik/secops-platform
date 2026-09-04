@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 _RE = re.compile(
@@ -23,7 +23,7 @@ def parse(line: str) -> Optional[dict]:
     if not m:
         return None
     month = _MONTHS.get(m.group("month"), 1)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     try:
         ts = datetime.strptime(
             f"{now.year} {month:02d} {int(m.group('day')):02d} {m.group('time')}",

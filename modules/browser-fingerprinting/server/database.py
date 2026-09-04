@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
+
 
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+
+
+def _utcnow():
+    """Naive UTC, matching the naive `DateTime` columns below."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 
 Base = declarative_base()
 
@@ -13,7 +20,7 @@ class Fingerprint(Base):
     __tablename__ = "fingerprints"
 
     id              = Column(Integer, primary_key=True, index=True)
-    collected_at    = Column(DateTime, default=datetime.utcnow, index=True)
+    collected_at    = Column(DateTime, default=_utcnow, index=True)
     collection_ms   = Column(Float)
 
     # Canvas

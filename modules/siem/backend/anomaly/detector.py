@@ -1,6 +1,6 @@
 import statistics
 from collections import defaultdict, deque
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -26,7 +26,7 @@ class AnomalyDetector:
         ip = event.source_ip
         if not ip or event.source_type not in ("apache", "nginx"):
             return None
-        now = event.timestamp or datetime.utcnow()
+        now = event.timestamp or datetime.now(timezone.utc).replace(tzinfo=None)
         bucket_ts = datetime(
             now.year, now.month, now.day,
             now.hour, now.minute,

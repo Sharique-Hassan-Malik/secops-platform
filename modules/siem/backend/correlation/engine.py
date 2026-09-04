@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from .rules import RULES
 
@@ -20,7 +20,7 @@ class CorrelationEngine:
         ip = event.source_ip
         if not ip:
             return []
-        now = event.timestamp or datetime.utcnow()
+        now = event.timestamp or datetime.now(timezone.utc).replace(tzinfo=None)
         self._windows[ip].append(event)
 
         alerts = []

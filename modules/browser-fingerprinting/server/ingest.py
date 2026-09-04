@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from .database import Fingerprint
@@ -32,7 +32,7 @@ def ingest(raw: dict) -> Fingerprint:
     try:
         collected_at = datetime.fromisoformat(raw.get("collected_at", "").replace("Z", "+00:00"))
     except (ValueError, AttributeError):
-        collected_at = datetime.utcnow()
+        collected_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     return Fingerprint(
         collected_at    = collected_at,

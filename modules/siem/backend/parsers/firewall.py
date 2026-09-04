@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 _MONTHS = {m: i + 1 for i, m in enumerate(
@@ -20,10 +20,10 @@ def parse(line: str) -> Optional[dict]:
     ts_m    = re.match(r"(\w+)\s+(\d+) (\d+:\d+:\d+)", line)
     if not src_m:
         return None
-    ts = datetime.utcnow()
+    ts = datetime.now(timezone.utc).replace(tzinfo=None)
     if ts_m:
         month = _MONTHS.get(ts_m.group(1), 1)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         try:
             ts = datetime.strptime(
                 f"{now.year} {month:02d} {int(ts_m.group(2)):02d} {ts_m.group(3)}",

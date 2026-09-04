@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 _RE = re.compile(
@@ -18,7 +18,7 @@ def parse(line: str) -> Optional[dict]:
     try:
         ts = datetime.strptime(m.group("time"), _TIME_FMT).replace(tzinfo=None)
     except ValueError:
-        ts = datetime.utcnow()
+        ts = datetime.now(timezone.utc).replace(tzinfo=None)
     status = int(m.group("status"))
     return {
         "timestamp":   ts,

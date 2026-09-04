@@ -9,7 +9,7 @@ Modes:
 import argparse
 import random
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 GOOD_IPS    = [f"192.168.1.{i}" for i in range(10, 40)]
@@ -143,7 +143,7 @@ def backfill(log_dir: Path, count: int) -> None:
         "firewall": open(log_dir / "firewall.log",      "a"),
     }
     generators = [_normal_apache, _normal_nginx, _normal_syslog, _normal_fw]
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     for i in range(count):
         ts       = now - timedelta(seconds=(count - i) * 10)
         src, line = random.choice(generators)(ts)
@@ -164,7 +164,7 @@ def stream(log_dir: Path) -> None:
     tick = 0
     try:
         while True:
-            ts = datetime.utcnow()
+            ts = datetime.now(timezone.utc).replace(tzinfo=None)
             for _ in range(random.randint(1, 3)):
                 src, line = random.choice([_normal_apache, _normal_nginx, _normal_syslog, _normal_fw])(ts)
                 files[src].write(line + "\n")

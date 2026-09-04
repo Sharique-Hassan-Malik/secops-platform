@@ -53,7 +53,7 @@ def _parse_timestamp(value: str) -> datetime.datetime:
     try:
         return datetime.datetime.fromisoformat(value.replace("Z", "+00:00")).replace(tzinfo=None)
     except ValueError:
-        return datetime.datetime.utcnow()
+        return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 
 
 def ingest_events(events: Iterable[Event]) -> int:

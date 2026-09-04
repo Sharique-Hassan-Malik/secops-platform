@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 _BROWSER_PROFILES = [
@@ -88,7 +88,7 @@ def generate(n: int = 1000, seed: int = 42) -> list[dict]:
     """Generate n synthetic fingerprint rows."""
     random.seed(seed)
     rows = []
-    now  = datetime.utcnow()
+    now  = datetime.now(timezone.utc).replace(tzinfo=None)
 
     for i in range(n):
         profile = random.choices(_BROWSER_PROFILES, weights=_WEIGHTS, k=1)[0]

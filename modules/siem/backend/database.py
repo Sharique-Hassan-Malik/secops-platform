@@ -1,10 +1,17 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
+
 
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from siem_config import DB_URL
+
+
+def _utcnow():
+    """Naive UTC, matching the naive `DateTime` columns below."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
@@ -30,7 +37,7 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id          = Column(Integer, primary_key=True, index=True)
-    created_at  = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at  = Column(DateTime, default=_utcnow, index=True)
     rule_name   = Column(String(64))
     severity    = Column(String(16))
     description = Column(Text)
@@ -52,7 +59,7 @@ class Detection(Base):
     __tablename__ = "detections"
 
     id        = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, index=True, default=datetime.utcnow)
+    timestamp = Column(DateTime, index=True, default=_utcnow)
     sensor    = Column(String(64), index=True)
     category  = Column(String(32), index=True)
     severity  = Column(String(16), index=True)

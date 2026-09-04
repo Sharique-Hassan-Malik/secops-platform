@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from correlation.engine import CorrelationEngine
@@ -12,7 +12,7 @@ def _event(source_type, source_ip, status_code=200, path=None, user_agent=None, 
         path=path,
         user_agent=user_agent,
         raw=raw,
-        timestamp=ts or datetime.utcnow(),
+        timestamp=ts or datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
 

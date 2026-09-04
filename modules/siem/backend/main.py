@@ -1,7 +1,7 @@
 import asyncio
 import queue as queue_module
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -163,7 +163,7 @@ def get_detections(
 
 @app.get("/api/stats")
 def get_stats(db: Session = Depends(get_db)):
-    now      = datetime.utcnow()
+    now      = datetime.now(timezone.utc).replace(tzinfo=None)
     last_24h = now - timedelta(hours=24)
 
     total_events    = db.query(func.count(LogEvent.id)).scalar()
